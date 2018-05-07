@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="bin/libs/three.js"></script>
+    <script src="bin/libs/controls/TrackballControls.js"></script>
+</head>
+<body>
+<div><button id="addTran">添加纹理</button></div>
+<div id="container">
+
+</div>
+<script>
+    //实现了在mesh表面添加一个平面
+    var container='';
+    var camera='';
+    var scene = '';
+    var renderer = '';
+    var controls;
+    //第一层纹理的url
+    var imgUrl='';
+    //第二层纹理的url
+    var svgUrl='';
+    var geometry;
+    var material;
+    var mesh;
+
+    var geometry5;
+    var material5;
+    var mesh5;
+
+    var isHotSpot=false;
+    var xPositionArr=[];
+    var yPositionArr=[];
+    var zPositionArr=[];
+
+    function init() {
+        container=document.getElementById("container");
+
+        camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 1000 );
+        camera.position.y=5;
+        camera.position.z=5;
+        scene=new THREE.Scene();
+        geometry=new THREE.CubeGeometry(2,2,2);
+        material = new THREE.MeshBasicMaterial({map: new THREE.TextureLoader().load(imgUrl)});
+        mesh = new THREE.Mesh(geometry, material);
+        scene.add(mesh);
+
+
+
+        controls = new THREE.TrackballControls( camera );
+
+        renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        container.appendChild(renderer.domElement);
+
+        document.addEventListener('mousedown', onDocumentMouseDown, false);
+        document.getElementById('addTran').addEventListener('click',function () {
+            isHotSpot=true;
+            document.getElementById('container').style.cursor='crosshair';
+        },false);
+        window.addEventListener( 'resize', resize, false );
+
+    }
+
+
+    function animate() {
+        controls.update();
+        requestAnimationFrame( animate );
+        renderer.render( scene, camera );
+
+    }
+    function resize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();       //更新相机投影矩阵
+        renderer.setSize( window.innerWidth, window.innerHeight );
+    }
+    //用户按下任意鼠标按钮时触发
+    function onDocumentMouseDown(event) {
+
+        event.preventDefault();
+        if(isHotSpot){
+            //获取坐标
+            var vector = new THREE.Vector3();//三维坐标对象
+            vector.set(
+                (event.clientX / window.innerWidth) * 2 - 1,
+                -(event.clientY / window.innerHeight) * 2 + 1,
+                0.5);
+            vector.unproject(camera);
+            var raycaster = new THREE.Raycaster(camera.position, vector.sub(camera.position).normalize());
+            var intersects = raycaster.intersectObjects(scene.children);
+            if (intersects.length > 0) {
+                var selected = intersects[0];//取第一个物体
+                xPositionArr.push(selected.point.x);
+                console.log("x坐标:" + xPositionArr);
+
+                yPositionArr.push(selected.point.y);
+                console.log("y坐标:" + yPositionArr);
+
+                zPositionArr.push(selected.point.z);
+                console.log("z坐标:" + zPositionArr);
+
+            }
+            if(xPositionArr.length==1){
+                alert('111');
+                document.getElementById('container').style.cursor='default';
+                geometry5=new THREE.PlaneGeometry(0.5,0.5,1,1);
+                material5 = new THREE.MeshBasicMaterial({map:new THREE.TextureLoader().load(svgUrl)});
+                mesh5 = new THREE.Mesh(geometry5, material5);
+                mesh5.rotation.x=-Math.PI/2;
+                mesh5.position.x=xPositionArr[0];
+                mesh5.position.y=yPositionArr[0];
+                mesh5.position.z=zPositionArr[0];
+                scene.add(mesh5);
+                isHotSpot=false;
+                xPositionArr=[];
+                yPositionArr=[];
+                zPositionArr=[];
+            }
+        }
+    }
+    init();
+    animate();
+</script>
+</body>
+</html>
