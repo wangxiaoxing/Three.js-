@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="three.js"></script>
+</head>
+<body>
+<div id="container">
+
+</div>
+
+<script>
+
+    let mesh = '';
+    let container='';
+    let camera='';
+    let scene = '';
+    let renderer = '';
+    let isUserInteracting = false;
+    let lon = 0;
+    let lat = 0;
+    let onPointerDownPointerX = '';
+    let onPointerDownLon = '';
+    let onPointerDownPointerY = '';
+    let onPointerDownLat = '';
+    let phi = 0;
+    let theta = 0;
+    let imgUrl='vrfromthree.jpg';
+
+
+    init(imgUrl);
+    animate();
+
+    function init(imgUrl) {
+        container = document.getElementById('container');
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 1100);
+        camera.target = new THREE.Vector3(0, 0, 0);
+        scene = new THREE.Scene();
+        const geometry = new THREE.SphereGeometry(500, 60, 40);
+        geometry.scale(-1, 1, 1);
+        const material = new THREE.MeshBasicMaterial({
+            map: new THREE.TextureLoader().load(imgUrl)
+
+        });
+        mesh = new THREE.Mesh(geometry, material);
+        scene.add(mesh);
+        renderer = new THREE.WebGLRenderer();
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        container.appendChild(renderer.domElement);
+        document.addEventListener('mousedown', onDocumentMouseDown, false);
+        document.addEventListener('mousemove', onDocumentMouseMove, false);
+        document.addEventListener('mouseup', onDocumentMouseUp, false);
+        document.addEventListener('wheel', onDocumentMouseWheel, false);
+        window.addEventListener('resize', onWindowResize, false);
+    }
+
+    function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+
+    }
+
+    //用户按下任意鼠标按钮时触发
+    function onDocumentMouseDown(event) {
+        event.preventDefault();
+        var mouse = convertTo3DCoordinate(event.clientX,event.clientY);
+        if(mouse.length===3){
+            let canvas = document.createElement('canvas');
+            canvas.style.backgroundColor = 'rgba(255,255,255,0)';
+            let context = canvas.getContext('2d');
+            canvas.width = 128;
+            canvas.height = 128;
+            var img = new Image();
+            img.src = 'hotspot.svg';
+            img.onload = function () {
+                context.drawImage(img, 0, 0);
+                let texture = new THREE.Texture(canvas);
+                texture.needsUpdate = true;
+                texture.minFilter = THREE.LinearFilter;
+                var spriteMaterial = new THREE.SpriteMaterial({
+                    map: texture,
+                    transparent: false
+                });
+                var sprite = new THREE.Sprite(spriteMaterial);
+                sprite.scale.set(30, 30, 30);
+                let rate = 0.9;
+                var endV = new THREE.Vector3(mouse[0] * rate, mouse[1] * rate, mouse[2] * rate);
+                sprite.position.copy(endV);
+                scene.add(sprite);
+                console.log(sprite);
+                console.log(endV);
+            }
+        }
+        isUserInteracting = true;
+        onPointerDownPointerX = event.clientX;
+        onPointerDownPointerY = event.clientY;
+        onPointerDownLon = lon;
+        onPointerDownLat = lat;
+
+    }
+    //当鼠标指针在元素内部移动时重复地触发,event.clientX表示鼠标在视口（不包括浏览器上面的内容）中的水平和垂直坐标
+    function onDocumentMouseMove(event) {
+        if (isUserInteracting === true) {
+            lon = (onPointerDownPointerX - event.clientX) * 0.1 + onPointerDownLon;
+            lat = (event.clientY - onPointerDownPointerY) * 0.1 + onPointerDownLat;
+        }
+
+    }
+    //当用户释放鼠标按钮时触发
+    function onDocumentMouseUp() {
+        isUserInteracting = false;
+        //camera.fov += event.deltaY * 0.05;
+
+    }
+    //鼠标滚轮事件
+    function onDocumentMouseWheel(event) {
+        camera.fov += event.deltaY * 0.05;
+        camera.updateProjectionMatrix();
+
+    }
+
+    function animate() {
+        update();
+        requestAnimationFrame(animate);
+
+    }
+    function update() {
+        if (isUserInteracting === false) {
+            lon += 0;
+        }
+        lat = Math.max(-85, Math.min(85, lat));
+        phi = THREE.Math.degToRad(90 - lat);
+        theta = THREE.Math.degToRad(lon);
+        camera.target.x = 500 * Math.sin(phi) * Math.cos(theta);
+        camera.target.y = 500 * Math.cos(phi);
+        camera.target.z = 500 * Math.sin(phi) * Math.sin(theta);
+        camera.lookAt(camera.target);
+        renderer.render(scene, camera);
+    }
+    //将二维鼠标坐标转化
+    function convertTo3DCoordinate(clientX,clientY){
+        var vector = new THREE.Vector3();//三维坐标对象
+        vector.set(
+            //注意：这里是根据render的size来确定的
+            ((clientX) / (window.innerWidth)) * 2 - 1,
+            -((clientY) / (window.innerHeight)) * 2 + 1,
+            0.5);
+        vector.unproject(camera);
+        var raycaster = new THREE.Raycaster(camera.position, vector.sub(camera.position).normalize());
+        var intersects = raycaster.intersectObjects(scene.children);
+        if (intersects.length > 0) {
+            var selected = intersects[0];//取第一个物体
+            return [selected.point.x,selected.point.y,selected.point.z];
+        }
+        return [];
+    }
+</script>
+</body>
+</html>
