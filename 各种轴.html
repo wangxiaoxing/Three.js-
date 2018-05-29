@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="bin/libs/three.js"></script>
+    <script src="bin/libs/controls/TrackballControls.js"></script>
+</head>
+<body>
+<script>
+    var scene = new THREE.Scene();
+    var camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+    var renderer = new THREE.WebGLRenderer();
+    var controls = new THREE.TrackballControls( camera );
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+    var geometry = new THREE.CubeGeometry(1,1,1);
+    var material = new THREE.MeshBasicMaterial({color: 0xffffff});
+    var cube = new THREE.Mesh(geometry, material); scene.add(cube);
+    camera.position.z = 5;
+    //faceNormalsHelper,每个面的法向量，绿色
+    var faceNormalsHelper = new THREE.FaceNormalsHelper( cube, 2, 0x00ff00, 1 );
+    scene.add(faceNormalsHelper);
+
+    //手动计算法向量，以立方体的右面为例，红色
+    let y2=0.5;
+    let y1=-0.5;
+    let y3=0.5;
+    let x2=0.5;
+    let x1=0.5;
+    let x3=0.5;
+    let z2=0.5;
+    let z1=0.5;
+    let z3=-0.5;
+    let a=(y2-y1)*(z3-z1)-(z2-z1)*(y3-y1);
+    let b=(z2-z1)*(x3-x1)-(z3-z1)*(x2-x1);
+    let c=(x2-x1)*(y3-y1)-(x3-x1)*(y2-y1);
+    var dir2 = new THREE.Vector3(a,b,c);
+    var origin =new THREE.Vector3(0.5,0,0);
+    var length = 100;
+    var hex = 0xff0000;
+    var arrowHelper2 = new THREE.ArrowHelper( dir2, origin, length, hex );
+    scene.add( arrowHelper2 );
+
+    //画世界坐标系
+    var axes = new THREE.AxisHelper(200);
+    scene.add(axes);
+    
+    function render() {
+        requestAnimationFrame(render);
+        controls.update();
+        renderer.render(scene, camera);
+    }
+    render();
+</script>
+</body>
+</html>
